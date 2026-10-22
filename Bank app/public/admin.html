@@ -1,129 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>INRI ADMIN</title>
-<style>
-body{font-family:sans-serif;background:#0f0f0f;color:white;padding:15px}
-.card{background:#1e1e1e;padding:15px;border-radius:12px;margin-bottom:15px}
-input,button{padding:10px;width:100%;margin:5px 0;border-radius:8px;border:none}
-button{background:#00ff88;color:black;font-weight:bold;cursor:pointer}
-.tab{display:flex;gap:10px;margin-bottom:15px}
-.tab button{flex:1}
-.active{background:white!important}
-.user{border-bottom:1px solid #333;padding:10px 0}
-</style>
-</head>
-<body>
-<div id="loginBox" class="card">
-<h2>INRI ADMIN LOGIN</h2>
-<input id="adminPass" type="password" placeholder="Admin Password">
-<button onclick="login()">LOGIN</button>
-</div>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>INRI ADMIN CONNECTED</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui;background:#0a0a0a;color:white;min-height:100vh}.header{background:#111;padding:15px;display:flex;justify-content:space-between;border-bottom:1px solid #222}.container{max-width:1200px;margin:0 auto;padding:20px}.card{background:#161616;border:1px solid #252525;padding:20px;border-radius:16px;margin-bottom:20px}input,button,textarea{padding:14px;width:100%;margin:8px 0;border-radius:10px;border:1px solid #333;background:#0f0f0f;color:white}button{background:#00ff88;color:black;font-weight:800;cursor:pointer;border:none}.tab{display:flex;gap:10px;margin-bottom:20px}.tab button{flex:1;background:#1e1e1e;color:white}.tab button.active{background:white!important;color:black!important}.user{background:#1a1a1a;padding:15px;border-radius:12px;margin:10px 0;border-left:4px solid #00ff88}.bal{font-size:28px;font-weight:900;color:#00ff88}.uploadBox{border:2px dashed #333;padding:20px;text-align:center;border-radius:12px;background:#0f0f0f}#loginBox{max-width:400px;margin:80px auto}</style></head><body>
+<div id="loginBox" class="card"><h2>INRI ADMIN - ENV ONLY</h2><input id="adminPass" type="password" placeholder="ENV Password"><button onclick="login()">LOGIN</button><p id="st" style="color:#00ff88"></p></div>
+<div id="mainBox" style="display:none"><div class="header"><h2>INRI DASHBOARD - CONNECTED</h2><small>ENV Protected</small></div><div class="container">
+<div class="tab"><button id="b1" class="active" onclick="showTab('bank')">BANK USERS</button><button id="b2" onclick="showTab('files')">PROJECTS</button></div>
 
-<div id="mainBox" style="display:none">
-<div class="tab">
-<button id="btnBank" class="active" onclick="showTab('bank')">BANK ADMIN</button>
-<button id="btnFiles" onclick="showTab('files')">FILES ADMIN</button>
-</div>
+<div id="bankTab"><div class="card"><h3>Add Money</h3><input id="bPhone" placeholder="Phone"><input id="bAmount" type="number" placeholder="Amount"><button onclick="addMoney()">CREDIT</button></div><div class="card"><button onclick="loadUsers()">REFRESH USERS</button><div id="usersList"></div></div></div>
 
-<!-- BANK ADMIN -->
-<div id="bankTab">
-<div class="card"><h3>Add Money To User</h3>
-<input id="bPhone" placeholder="User phone 11 digits">
-<input id="bAmount" placeholder="Amount e.g 5000" type="number">
-<button onclick="addMoney()">SEND MONEY</button>
-</div>
-<div class="card"><h3>Edit / Ban User</h3>
-<input id="ePhone" placeholder="Phone">
-<input id="eBalance" placeholder="New Balance">
-<input id="eName" placeholder="New Name (optional)">
-<button onclick="editUser()">UPDATE USER</button>
-<button style="background:#ff4444;color:white" onclick="banUser()">BAN / UNBAN</button>
-</div>
-<div class="card"><h3>All Registered Users - Refresh shows new balance</h3>
-<button onclick="loadUsers()">REFRESH USERS</button>
-<div id="usersList"></div>
-</div>
-</div>
-
-<!-- FILES ADMIN -->
 <div id="filesTab" style="display:none">
-<div class="card"><h3>Add Project For Sale</h3>
-<input id="fTitle" placeholder="Project Title">
-<input id="fDesc" placeholder="Description">
-<input id="fPrice" placeholder="Price e.g 2000" type="number">
-<input id="fLink" placeholder="Download Link (Drive/Link)">
-<button onclick="addFile()">UPLOAD PROJECT</button>
+<div class="card"><h3>Upload Project - Connects to Bank App</h3>
+<div class="uploadBox"><input type="file" id="fileInput"><button onclick="uploadRealFile()" style="margin-top:10px">1. UPLOAD FILE TO /uploads/</button><p id="uploadStatus" style="color:#00ff88;margin-top:10px"></p><input id="uploadedLink" readonly placeholder="Link appears here"></div><hr style="margin:20px 0;border-color:#222">
+<input id="fTitle" placeholder="Project Title"><textarea id="fDesc" placeholder="Description" rows="2"></textarea><input id="fPrice" type="number" placeholder="Price e.g 1500"><input id="fLink" placeholder="Download Link - auto filled"><button onclick="addFile()">2. SAVE - Will load in Bank App /api/bank/projects</button>
 </div>
-<div class="card"><h3>All Projects</h3>
-<button onclick="loadFiles()">REFRESH FILES</button>
-<div id="filesList"></div>
+<div class="card"><button onclick="loadFiles()">REFRESH PROJECTS</button><div id="filesList"></div></div>
 </div>
-</div>
-
-</div>
-
+</div></div>
 <script>
-let ADMIN = "";
-const API = ""; // Leave empty if hosted on same domain
-
-function login(){
-  ADMIN = document.getElementById('adminPass').value;
-  if(ADMIN !== "Fearless@Admin2026"){alert("Wrong"); return;}
-  document.getElementById('loginBox').style.display='none';
-  document.getElementById('mainBox').style.display='block';
-  loadUsers(); loadFiles();
+let ADMIN="";
+async function login(){ADMIN=document.getElementById('adminPass').value.trim();let r=await fetch('/api/admin/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN})});let d=await r.json();if(d.success){document.getElementById('loginBox').style.display='none';document.getElementById('mainBox').style.display='block';loadUsers();loadFiles();}else alert("Wrong ENV");}
+function showTab(t){document.getElementById('bankTab').style.display=t==='bank'?'block':'none';document.getElementById('filesTab').style.display=t==='files'?'block':'none';document.getElementById('b1').className=t==='bank'?'active':'';document.getElementById('b2').className=t==='files'?'active':''}
+async function uploadRealFile(){
+ let file=document.getElementById('fileInput').files[0]; if(!file) return alert("Select file");
+ document.getElementById('uploadStatus').innerText="Uploading...";
+ let fd=new FormData(); fd.append('projectFile',file);
+ let r=await fetch(`/api/admin/upload-file?adminPassword=${encodeURIComponent(ADMIN)}`,{method:'POST',body:fd});
+ let d=await r.json();
+ if(d.success){document.getElementById('uploadStatus').innerText="✅ Saved: "+d.fileUrl; document.getElementById('uploadedLink').value=d.fileUrl; document.getElementById('fLink').value=d.fileUrl;}
+ else document.getElementById('uploadStatus').innerText="Failed";
 }
-function showTab(t){
-  document.getElementById('bankTab').style.display = t==='bank'?'block':'none';
-  document.getElementById('filesTab').style.display = t==='files'?'block':'none';
-  document.getElementById('btnBank').className = t==='bank'?'active':'';
-  document.getElementById('btnFiles').className = t==='files'?'active':'';
-}
-
-async function loadUsers(){
-  let r = await fetch('/api/admin/bank/users'); let data = await r.json();
-  let html = "";
-  for(let phone in data){
-    let u = data[phone];
-    html+=`<div class="user"><b>${u.name}</b> | ${phone}<br>Acc: ${u.accountNumber}<br>Bal: ₦${u.balance} | Banned: ${u.banned}<br><small>${u.notifications?.length||0} notifs</small></div>`;
-  }
-  document.getElementById('usersList').innerHTML = html || "No users yet";
-}
-async function addMoney(){
-  let phone=document.getElementById('bPhone').value; let amount=document.getElementById('bAmount').value;
-  if(phone.length!=11){alert("Phone must be 11"); return;}
-  let r = await fetch('/api/admin/bank/addmoney',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone,amount})});
-  let d = await r.json(); alert(d.success ? "Sent! New bal: "+d.newBalance : d.error); loadUsers();
-}
-async function editUser(){
-  let phone=document.getElementById('ePhone').value; let balance=document.getElementById('eBalance').value; let name=document.getElementById('eName').value;
-  let r = await fetch('/api/admin/bank/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone,balance,name})});
-  let d = await r.json(); alert("Updated"); loadUsers();
-}
-async function banUser(){
-  let phone=document.getElementById('ePhone').value;
-  let r = await fetch('/api/admin/bank/ban',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone})});
-  alert("Banned/Unbanned"); loadUsers();
-}
-
-async function loadFiles(){
-  let r = await fetch('/api/admin/files'); let data = await r.json();
-  let html=""; data.files.forEach(f=>{
-    html+=`<div class="user"><b>${f.title}</b> - ₦${f.price}<br>${f.desc}<br><a href="${f.downloadLink}" target="_blank">Link</a><br><button onclick="delFile(${f.id})" style="background:red;color:white">DELETE</button></div>`;
-  });
-  document.getElementById('filesList').innerHTML = html;
-}
-async function addFile(){
-  let title=document.getElementById('fTitle').value; let desc=document.getElementById('fDesc').value; let price=document.getElementById('fPrice').value; let downloadLink=document.getElementById('fLink').value;
-  let r = await fetch('/api/admin/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,title,desc,price,downloadLink})});
-  alert("Added"); loadFiles();
-}
-async function delFile(id){
-  let r = await fetch('/api/admin/files/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,id})});
-  loadFiles();
-}
-</script>
-</body>
-</html>
+async function loadUsers(){let r=await fetch(`/api/admin/bank/users?adminPassword=${encodeURIComponent(ADMIN)}`);let data=await r.json();let h="";for(let p in data){let u=data[p];h+=`<div class="user"><b>${u.name}</b> | ${p}<br>Acc: ${u.accountNumber}<br><div class="bal">₦${Number(u.balance).toLocaleString()}</div></div>`}document.getElementById('usersList').innerHTML=h||"No users"}
+async function addMoney(){await fetch(`/api/admin/bank/addmoney?adminPassword=${encodeURIComponent(ADMIN)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone:document.getElementById('bPhone').value,amount:document.getElementById('bAmount').value})});alert("Credited");loadUsers()}
+async function loadFiles(){let r=await fetch(`/api/admin/files?adminPassword=${encodeURIComponent(ADMIN)}`);let d=await r.json();let h="";(d.files||[]).forEach(f=>{h+=`<div class="user"><b>${f.title}</b> - ₦${f.price}<br>${f.desc}<br><a href="${f.downloadLink}" target="_blank" style="color:#00ff88;word-break:break-all">${f.downloadLink}</a><br><small>Bank App loads from /api/bank/projects | Files App gives login after buy</small><br><button onclick="delFile(${f.id})" style="background:red;color:white;width:auto;padding:5px 15px;margin-top:5px">DELETE</button></div>`});document.getElementById('filesList').innerHTML=h||"No projects"}
+async function addFile(){let r=await fetch(`/api/admin/files?adminPassword=${encodeURIComponent(ADMIN)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,title:document.getElementById('fTitle').value,desc:document.getElementById('fDesc').value,price:document.getElementById('fPrice').value,downloadLink:document.getElementById('fLink').value})});let d=await r.json();if(d.success){alert("Saved! Now Bank App will load it from /api/bank/projects");loadFiles();}}
+async function delFile(id){await fetch(`/api/admin/files/delete?adminPassword=${encodeURIComponent(ADMIN)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,id})});loadFiles();}
+</script></body></html>
