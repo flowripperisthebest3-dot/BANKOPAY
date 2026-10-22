@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>INRI ADMIN</title>
+<style>
+body{font-family:sans-serif;background:#0f0f0f;color:white;padding:15px}
+.card{background:#1e1e1e;padding:15px;border-radius:12px;margin-bottom:15px}
+input,button{padding:10px;width:100%;margin:5px 0;border-radius:8px;border:none}
+button{background:#00ff88;color:black;font-weight:bold;cursor:pointer}
+.tab{display:flex;gap:10px;margin-bottom:15px}
+.tab button{flex:1}
+.active{background:white!important}
+.user{border-bottom:1px solid #333;padding:10px 0}
+</style>
+</head>
+<body>
+<div id="loginBox" class="card">
+<h2>INRI ADMIN LOGIN</h2>
+<input id="adminPass" type="password" placeholder="Admin Password">
+<button onclick="login()">LOGIN</button>
+</div>
+
+<div id="mainBox" style="display:none">
+<div class="tab">
+<button id="btnBank" class="active" onclick="showTab('bank')">BANK ADMIN</button>
+<button id="btnFiles" onclick="showTab('files')">FILES ADMIN</button>
+</div>
+
+<!-- BANK ADMIN -->
+<div id="bankTab">
+<div class="card"><h3>Add Money To User</h3>
+<input id="bPhone" placeholder="User phone 11 digits">
+<input id="bAmount" placeholder="Amount e.g 5000" type="number">
+<button onclick="addMoney()">SEND MONEY</button>
+</div>
+<div class="card"><h3>Edit / Ban User</h3>
+<input id="ePhone" placeholder="Phone">
+<input id="eBalance" placeholder="New Balance">
+<input id="eName" placeholder="New Name (optional)">
+<button onclick="editUser()">UPDATE USER</button>
+<button style="background:#ff4444;color:white" onclick="banUser()">BAN / UNBAN</button>
+</div>
+<div class="card"><h3>All Registered Users - Refresh shows new balance</h3>
+<button onclick="loadUsers()">REFRESH USERS</button>
+<div id="usersList"></div>
+</div>
+</div>
+
+<!-- FILES ADMIN -->
+<div id="filesTab" style="display:none">
+<div class="card"><h3>Add Project For Sale</h3>
+<input id="fTitle" placeholder="Project Title">
+<input id="fDesc" placeholder="Description">
+<input id="fPrice" placeholder="Price e.g 2000" type="number">
+<input id="fLink" placeholder="Download Link (Drive/Link)">
+<button onclick="addFile()">UPLOAD PROJECT</button>
+</div>
+<div class="card"><h3>All Projects</h3>
+<button onclick="loadFiles()">REFRESH FILES</button>
+<div id="filesList"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+let ADMIN = "";
+const API = ""; // Leave empty if hosted on same domain
+
+function login(){
+  ADMIN = document.getElementById('adminPass').value;
+  if(ADMIN !== "Fearless@Admin2026"){alert("Wrong"); return;}
+  document.getElementById('loginBox').style.display='none';
+  document.getElementById('mainBox').style.display='block';
+  loadUsers(); loadFiles();
+}
+function showTab(t){
+  document.getElementById('bankTab').style.display = t==='bank'?'block':'none';
+  document.getElementById('filesTab').style.display = t==='files'?'block':'none';
+  document.getElementById('btnBank').className = t==='bank'?'active':'';
+  document.getElementById('btnFiles').className = t==='files'?'active':'';
+}
+
+async function loadUsers(){
+  let r = await fetch('/api/admin/bank/users'); let data = await r.json();
+  let html = "";
+  for(let phone in data){
+    let u = data[phone];
+    html+=`<div class="user"><b>${u.name}</b> | ${phone}<br>Acc: ${u.accountNumber}<br>Bal: ₦${u.balance} | Banned: ${u.banned}<br><small>${u.notifications?.length||0} notifs</small></div>`;
+  }
+  document.getElementById('usersList').innerHTML = html || "No users yet";
+}
+async function addMoney(){
+  let phone=document.getElementById('bPhone').value; let amount=document.getElementById('bAmount').value;
+  if(phone.length!=11){alert("Phone must be 11"); return;}
+  let r = await fetch('/api/admin/bank/addmoney',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone,amount})});
+  let d = await r.json(); alert(d.success ? "Sent! New bal: "+d.newBalance : d.error); loadUsers();
+}
+async function editUser(){
+  let phone=document.getElementById('ePhone').value; let balance=document.getElementById('eBalance').value; let name=document.getElementById('eName').value;
+  let r = await fetch('/api/admin/bank/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone,balance,name})});
+  let d = await r.json(); alert("Updated"); loadUsers();
+}
+async function banUser(){
+  let phone=document.getElementById('ePhone').value;
+  let r = await fetch('/api/admin/bank/ban',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,phone})});
+  alert("Banned/Unbanned"); loadUsers();
+}
+
+async function loadFiles(){
+  let r = await fetch('/api/admin/files'); let data = await r.json();
+  let html=""; data.files.forEach(f=>{
+    html+=`<div class="user"><b>${f.title}</b> - ₦${f.price}<br>${f.desc}<br><a href="${f.downloadLink}" target="_blank">Link</a><br><button onclick="delFile(${f.id})" style="background:red;color:white">DELETE</button></div>`;
+  });
+  document.getElementById('filesList').innerHTML = html;
+}
+async function addFile(){
+  let title=document.getElementById('fTitle').value; let desc=document.getElementById('fDesc').value; let price=document.getElementById('fPrice').value; let downloadLink=document.getElementById('fLink').value;
+  let r = await fetch('/api/admin/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,title,desc,price,downloadLink})});
+  alert("Added"); loadFiles();
+}
+async function delFile(id){
+  let r = await fetch('/api/admin/files/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminPassword:ADMIN,id})});
+  loadFiles();
+}
+</script>
+</body>
+</html>
